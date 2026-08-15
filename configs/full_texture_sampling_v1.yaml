@@ -1,0 +1,81 @@
+# Observed KLA archive contract: float32 128×128 NoisyLR -> 256×256 GT pairs.
+#
+# Same loss/model/training hyperparameters as configs/charbonnier_ssim.yaml
+# (this project's de facto full-data baseline loss: reconstruction_loss's
+# `pixel` already defaults to "charbonnier", so the unlabeled `full_baseline_*`
+# configs train on it too). The intended variable is crop sampling.
+#
+# One necessary side effect: crop_size_lr has to drop below the native 128px
+# source size for a texture-aware crop *position* to mean anything -- at
+# crop_size_lr=128 there is only one possible crop (the whole image, see
+# dataset.py's PairedRestorationDataset._crop early return), which is what
+# every other config in this repo actually trains on today, despite having
+# a crop_size_lr setting. 96px keeps most of each image's context while
+# giving ~33x33 candidate positions per axis.
+#
+# That means this config isolates two things at once relative to
+# charbonnier_ssim.yaml: patch-based training itself, and texture-aware
+# position selection within each patch. To separate those two effects,
+# compare three ways on the same frozen validation split:
+#   1. configs/charbonnier_ssim.yaml            (crop_size_lr=128, i.e. no real cropping)
+#   2. configs/full_random_crop_control_v1.yaml  (crop_size_lr=96, uniform-random position)
+#   3. this config                               (crop_size_lr=96, texture-aware position)
+# (2) vs (1) isolates whether patch training alone helps; (3) vs (2) isolates
+# whether texture-aware position selection adds anything beyond that.
+#
+# texture_aware_sampling mixes: 50% uniform-random crop position (matching
+# every other config here), 30% highest-detail candidate out of
+# texture_candidate_count random draws, 20% a medium-detail candidate --
+# so fine structure/edges are oversampled without abandoning the rest of the
+# tonal range. See PairedRestorationDataset._choose_crop_position /
+# _detail_score in dataset.py.
+#
+# Epoch count (15) matches the other loss-ablation runs already on this
+# validation split (charbonnier_ssim_hard, charbonnier_ssim_sobel), not the
+# plan's example -- kept consistent so this is directly comparable to them.
+seed: 42
+
+paths:
+  train_degraded_dir: data/kla/train/degraded
+  train_ground_truth_dir: data/kla/train/ground_truth
+  # Test_NoisyLR shares some filename stems with train.zip but its images are
+  # not aligned to those GT arrays, so it is unpaired inference-only data.
+  validation_degraded_dir: null
+  validation_ground_truth_dir: null
+  exclude_train_ids_file: null
+  checkpoint_dir: checkpoints/full_texture_sampling_v1
+  output_dir: outputs/full_texture_sampling_v1
+
+data:
+  scale_factor: 2
+  floating_point_scale: 1.0
+  metric_data_range: 1.0
+  validation_fraction: 0.15
+  crop_size_lr: 96
+  geometric_augment: true
+  texture_aware_sampling: true
+  texture_candidate_count: 8
+  num_workers: 0
+
+model:
+  input_channels: 1
+  output_channels: 1
+  scale_factor: 2
+  width: 16
+  enc_blocks: [1, 1, 1]
+  middle_blocks: 1
+  dec_blocks: [1, 1, 1]
+
+loss:
+  pixel: charbonnier
+  pixel_weight: 1.0
+  charbonnier_epsilon: 0.001
+  lambda_ssim: 0.2
+
+training:
+  epochs: 15
+  batch_size: 4
+  learning_rate: 0.0003
+  min_learning_rate: 0.00001
+  weight_decay: 0.00001
+  amp: false

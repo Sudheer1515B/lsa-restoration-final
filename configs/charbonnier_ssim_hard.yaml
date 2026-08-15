@@ -1,0 +1,61 @@
+# Observed KLA archive contract: float32 128×128 NoisyLR -> 256×256 GT pairs.
+#
+# Same as configs/charbonnier_ssim.yaml, with one variable changed: adds
+# `hard_pixel_weight`, an unbounded squared-error term over each image's
+# top `hard_pixel_fraction` highest-residual pixels (see
+# losses.hard_pixel_loss). Charbonnier and SSIM are both deliberately
+# robust to sparse, large-magnitude residuals (that's the point of
+# Charbonnier's saturating gradient and SSIM's windowed averaging), which
+# gives the model little pressure to remove sparse high-magnitude
+# corruption such as speckle. This term restores that pressure without
+# changing the existing pixel/SSIM terms. Start at a low weight and
+# compare against configs/charbonnier_ssim.yaml using the same frozen
+# validation split: check the high-noise-third PSNR/SSIM in
+# training_history.csv and the worst-ranked panels, not just the
+# dataset-wide mean.
+seed: 42
+
+paths:
+  train_degraded_dir: data/kla/train/degraded
+  train_ground_truth_dir: data/kla/train/ground_truth
+  # Test_NoisyLR shares some filename stems with train.zip but its images are
+  # not aligned to those GT arrays, so it is unpaired inference-only data.
+  validation_degraded_dir: null
+  validation_ground_truth_dir: null
+  exclude_train_ids_file: null
+  checkpoint_dir: checkpoints/charbonnier_ssim_hard
+  output_dir: outputs/charbonnier_ssim_hard
+
+data:
+  scale_factor: 2
+  floating_point_scale: 1.0
+  metric_data_range: 1.0
+  validation_fraction: 0.15
+  crop_size_lr: 128
+  geometric_augment: true
+  num_workers: 0
+
+model:
+  input_channels: 1
+  output_channels: 1
+  scale_factor: 2
+  width: 16
+  enc_blocks: [1, 1, 1]
+  middle_blocks: 1
+  dec_blocks: [1, 1, 1]
+
+loss:
+  pixel: charbonnier
+  pixel_weight: 1.0
+  charbonnier_epsilon: 0.001
+  lambda_ssim: 0.2
+  hard_pixel_weight: 0.1
+  hard_pixel_fraction: 0.05
+
+training:
+  epochs: 5
+  batch_size: 4
+  learning_rate: 0.0003
+  min_learning_rate: 0.00001
+  weight_decay: 0.00001
+  amp: false

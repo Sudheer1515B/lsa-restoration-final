@@ -1,0 +1,63 @@
+# Observed KLA archive contract: float32 128×128 NoisyLR -> 256×256 GT pairs.
+#
+# Capacity-scaling step 3 ("Medium B" -- see docs/methodology.md for the full
+# ladder and rationale). Only run this if
+# configs/medium_nafnet_a.yaml's train/val loss are still both improving at
+# the epoch budget's end (not flattening the way the 291k baseline's did) --
+# i.e. real evidence of remaining underfit, not just "bigger might be
+# better." Same block shape as medium_nafnet_a.yaml (enc_blocks: [1,2,2],
+# middle_blocks: 2, dec_blocks: [2,2,1]), just wider: 4,252,564 params
+# (~14.6x baseline) vs. medium_nafnet_a's 1,905,764.
+#
+# Do not jump straight to a deeper/wider combination beyond this without
+# going through this config first -- with only 3,200 training pairs, a large
+# jump is more likely to memorize than generalize, and if it does help you
+# won't know whether width or depth did it. Everything else (loss, crop
+# size, epochs, LR, batch size, seed, validation split) matches
+# configs/charbonnier_ssim_sobel.yaml, same as every other config in this
+# ladder.
+seed: 42
+
+paths:
+  train_degraded_dir: data/kla/train/degraded
+  train_ground_truth_dir: data/kla/train/ground_truth
+  # Test_NoisyLR shares some filename stems with train.zip but its images are
+  # not aligned to those GT arrays, so it is unpaired inference-only data.
+  validation_degraded_dir: null
+  validation_ground_truth_dir: null
+  exclude_train_ids_file: null
+  checkpoint_dir: checkpoints/medium_nafnet_b
+  output_dir: outputs/medium_nafnet_b
+
+data:
+  scale_factor: 2
+  floating_point_scale: 1.0
+  metric_data_range: 1.0
+  validation_fraction: 0.15
+  crop_size_lr: 128
+  geometric_augment: true
+  num_workers: 0
+
+model:
+  input_channels: 1
+  output_channels: 1
+  scale_factor: 2
+  width: 48
+  enc_blocks: [1, 2, 2]
+  middle_blocks: 2
+  dec_blocks: [2, 2, 1]
+
+loss:
+  pixel: charbonnier
+  pixel_weight: 1.0
+  charbonnier_epsilon: 0.001
+  lambda_ssim: 0.10
+  lambda_gradient: 0.05
+
+training:
+  epochs: 5
+  batch_size: 4
+  learning_rate: 0.0003
+  min_learning_rate: 0.00001
+  weight_decay: 0.00001
+  amp: false
