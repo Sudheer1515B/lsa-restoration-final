@@ -17,7 +17,7 @@ Do not clip the noisy input before it reaches the model. The baseline uses `floa
 
 ## Setup and inspection
 
-Place the organizer-supplied `train.zip` and `Test_NoisyLR.zip` in the repo root (not included in this repository), then create a virtual environment and install the dependencies:
+Place the supplied `train.zip` and `Test_NoisyLR.zip` in the repo root (not included in this repository), then create a virtual environment and install the dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -30,7 +30,6 @@ python prepare_kla_data.py
   --test-zip Test_NoisyLR.zip \
   --output outputs/kla_dataset_report.md
 ```
-
 `inspect_dataset.py` reports paths, filename-stem pairing, resolutions, dtype/range, exact duplicates, and near-duplicate candidates. It can also read the training archive directly with `--train-zip train.zip`.
 
 ## NAFNet-SR model and training path
