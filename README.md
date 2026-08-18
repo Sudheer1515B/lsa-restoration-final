@@ -2,9 +2,11 @@
 
 ## Submission quick start
 
-The evaluator-facing submission consists of `run.py`, `requirements.txt`, and
-the self-contained checkpoint in `models/final_model.pt`. From the submission
-root, install the two pinned runtime dependencies and run:
+The evaluator-facing submission consists only of `run.py`, `requirements.txt`,
+`README.md`, and the `models/` directory. `models/` contains both the
+self-contained checkpoint and its small architecture definition; no other
+repository file is needed. From the submission root, install the two pinned
+runtime dependencies and run:
 
 ```bash
 python3 -m venv .venv

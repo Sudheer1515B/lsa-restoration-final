@@ -19,7 +19,7 @@ import sys
 import numpy as np
 import torch
 
-from model import NAFNetSR
+from models import NAFNetSR
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent
