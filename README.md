@@ -1,5 +1,37 @@
 # KLA Semiconductor Image Restoration
 
+## Submission quick start
+
+The evaluator-facing submission consists of `run.py`, `requirements.txt`, and
+the self-contained checkpoint in `models/final_model.pt`. From the submission
+root, install the two pinned runtime dependencies and run:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python run.py <input-dir> <output-dir>
+```
+
+After activating that environment (or on an evaluator where `python` already
+points to the installed interpreter), the required command is equivalently:
+
+```bash
+python run.py <input-dir> <output-dir>
+```
+
+`run.py` reads every `.npy` file directly inside `<input-dir>`, creates
+`<output-dir>` when needed, and writes one `float32` grayscale `.npy` array
+with the same filename for each input. The model restores at the checkpoint's
+configured 2× resolution (for KLA inputs: 128×128 → 256×256) and clamps every
+output to finite values in `[0, 1]`. It automatically uses an NVIDIA CUDA GPU
+when a CUDA-enabled PyTorch installation is available; otherwise it runs on
+CPU. No network access, API keys, downloads, prompts, or manual configuration
+are required after dependencies are installed.
+
+The bundled checkpoint contains its architecture configuration and weights.
+Use `python run.py --help` only for the optional `--checkpoint` and `--device`
+overrides; neither is required by the evaluator command.
+
 Submission for the SEMICON India Hackathon restoration task: a lightweight, single-image NAFNet-style model that restores grayscale semiconductor inspection images at 2× spatial resolution. The final model (`weights/final_model.pt`) scores **PSNR 28.99 dB / SSIM 0.8247 / LPIPS 0.1341** on a genuine held-out validation split (never trained on) — see [`docs/methodology.md`](docs/methodology.md) for the full methodology and measurements.
 
 ## Observed dataset contract
